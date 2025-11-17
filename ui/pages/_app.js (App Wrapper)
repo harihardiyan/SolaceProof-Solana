@@ -1,0 +1,28 @@
+// ui/pages/_app.js
+import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
+import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
+import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import '@solana/wallet-adapter-react-ui/styles.css';
+import { useSolana } from '../hooks/useSolana';
+import Head from 'next/head';
+
+function MyApp({ Component, pageProps }) {
+  const { endpoint, wallets } = useSolana();
+
+  return (
+    <>
+      <Head>
+        <title>SolaceProof ZK Verifier</title>
+      </Head>
+      <ConnectionProvider endpoint={endpoint}>
+        <WalletProvider wallets={wallets} autoConnect>
+          <WalletModalProvider>
+            <Component {...pageProps} />
+          </WalletModalProvider>
+        </WalletProvider>
+      </ConnectionProvider>
+    </>
+  );
+}
+
+export default MyApp;
