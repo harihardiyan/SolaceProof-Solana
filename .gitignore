@@ -1,0 +1,10 @@
+/node_modules
+/.next
+/ui/idl/
+/anchor/target/
+/server/node_modules
+/ui/node_modules
+/circuits/build/
+/circuits/proof_artifacts/
+/circuits/input.json
+.env
