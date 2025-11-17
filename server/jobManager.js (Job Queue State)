@@ -1,0 +1,47 @@
+// server/jobManager.js
+const jobs = {};
+
+/**
+ * Menambahkan pekerjaan ZK baru ke antrian.
+ * @param {string} walletAddress - Alamat dompet peminta.
+ * @returns {string} - ID Pekerjaan.
+ */
+function createJob(walletAddress) {
+    const jobId = Date.now().toString(36) + Math.random().toString(36).substring(2, 7);
+    jobs[jobId] = {
+        id: jobId,
+        status: 'PENDING', // PENDING, PROVING, SUCCESS, FAILED
+        wallet: walletAddress,
+        proof: null,
+        publicInputs: null,
+        error: null,
+        createdAt: new Date().toISOString()
+    };
+    console.log(`[Job Manager] Job ${jobId} created for ${walletAddress}.`);
+    return jobId;
+}
+
+/**
+ * Mendapatkan status pekerjaan.
+ * @param {string} jobId 
+ * @returns {object|null}
+ */
+function getJob(jobId) {
+    return jobs[jobId] || null;
+}
+
+/**
+ * Mengupdate status pekerjaan.
+ */
+function updateJobStatus(jobId, status, data = {}) {
+    if (jobs[jobId]) {
+        jobs[jobId] = { ...jobs[jobId], status, ...data };
+        console.log(`[Job Manager] Job ${jobId} updated to status: ${status}`);
+    }
+}
+
+module.exports = {
+    createJob,
+    getJob,
+    updateJobStatus,
+};
