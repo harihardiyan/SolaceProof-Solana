@@ -1,0 +1,42 @@
+// ui/utils/proofFormatter.ts
+import { Proof } from 'snarkjs';
+
+// Groth16 Proof terdiri dari 8 elemen (A, B, C)
+export interface Groth16Proof {
+    pi_a: string[];
+    pi_b: string[][];
+    pi_c: string[];
+}
+
+/**
+ * Mengkonversi format Groth16 Proof dari snarkjs ke format byte Vec<u8> untuk Solana Anchor.
+ * Format: A[2] | C[2] | B[4]
+ */
+export function formatGroth16Proof(proof: Groth16Proof): number[] {
+    const rawProof = [
+        ...proof.pi_a.slice(0, 2).map(BigInt),
+        ...proof.pi_c.slice(0, 2).map(BigInt),
+        ...proof.pi_b.flat().map(BigInt),
+    ];
+
+    const proofBytes: number[] = [];
+    rawProof.forEach(element => {
+        // Mengkonversi BigInt (256-bit) ke 32 byte (256/8)
+        const elementBytes = Buffer.from(element.toString(16).padStart(64, '0'), 'hex');
+        proofBytes.push(...Array.from(elementBytes));
+    });
+
+    return proofBytes;
+}
+
+/**
+ * Mengkonversi Public Inputs dari string besar (Circom) menjadi Vec<u64> untuk Solana.
+ */
+export function convertPublicInputs(publicInputs: string[]): anchor.BN[] {
+    if (!publicInputs || publicInputs.length === 0) {
+        throw new Error('Public inputs are empty');
+    }
+    
+    // Asumsi Public Inputs adalah [modelHash, l_reg_claim, transcriptHash]
+    return publicInputs.map(input => new anchor.BN(input));
+}
