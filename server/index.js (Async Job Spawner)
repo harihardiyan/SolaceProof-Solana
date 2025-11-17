@@ -1,0 +1,72 @@
+// server/index.js
+const express = require('express');
+const cors = require('cors');
+const { spawn } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const { createJob, getJob, updateJobStatus } = require('./jobManager');
+
+const app = express();
+const PORT = 3001;
+const PROVING_SCRIPT = path.join(__dirname, '..', 'scripts', 'run_proving_phase.sh');
+const PROOF_PATH = path.join(__dirname, '..', 'circuits', 'proof_artifacts', 'proof.json');
+const PUBLIC_INPUTS_PATH = path.join(__dirname, '..', 'circuits', 'proof_artifacts', 'public.json');
+
+app.use(cors());
+app.use(express.json());
+
+// API 1: Memulai Proses Proving Asynchronous
+app.post('/api/generate-proof', (req, res) => {
+    const { walletAddress } = req.body;
+    if (!walletAddress) {
+        return res.status(400).json({ error: 'Missing wallet address' });
+    }
+
+    const jobId = createJob(walletAddress);
+
+    // SPRAWN THE ZK PROCESS ASYNCHRONOUSLY
+    const provingProcess = spawn('sh', [PROVING_SCRIPT], {
+        cwd: path.join(__dirname, '..'),
+        stdio: 'inherit', // Menampilkan output script di konsol server
+    });
+
+    updateJobStatus(jobId, 'PROVING');
+
+    provingProcess.on('error', (err) => {
+        updateJobStatus(jobId, 'FAILED', { error: `Script execution error: ${err.message}` });
+    });
+
+    provingProcess.on('close', (code) => {
+        if (code === 0) {
+            try {
+                // Baca output proof dan public inputs
+                const proof = JSON.parse(fs.readFileSync(PROOF_PATH, 'utf8'));
+                const publicInputs = JSON.parse(fs.readFileSync(PUBLIC_INPUTS_PATH, 'utf8'));
+
+                updateJobStatus(jobId, 'SUCCESS', { proof, publicInputs });
+            } catch (e) {
+                updateJobStatus(jobId, 'FAILED', { error: `Failed to read proof files: ${e.message}` });
+            }
+        } else {
+            updateJobStatus(jobId, 'FAILED', { error: `Proving script exited with code ${code}` });
+        }
+    });
+
+    res.json({ jobId, status: 'PENDING' });
+});
+
+// API 2: Polling Status Pekerjaan
+app.get('/api/job/:jobId', (req, res) => {
+    const { jobId } = req.params;
+    const job = getJob(jobId);
+
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+    res.json(job);
+});
+
+app.listen(PORT, () => {
+    console.log(`\nAPI Server running on http://localhost:${PORT}`);
+    console.log("Job Queue enabled. Ready to spawn ZK Prover.");
+});
