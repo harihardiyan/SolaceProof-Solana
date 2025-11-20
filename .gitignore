@@ -8,3 +8,8 @@
 /circuits/proof_artifacts/
 /circuits/input.json
 .env
+ZK Files
+/circuits/.ptau
+/circuits/.r1cs
+/circuits/.sym
+/circuits/.zkey
